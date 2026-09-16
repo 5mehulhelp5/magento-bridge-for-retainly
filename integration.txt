@@ -12,10 +12,36 @@ SSH into your Magento server and run:
     bin/magento cache:flush
 
 
-Step 2 — Set your admin token to never expire
+Step 2 — Give your admin token a long lifetime
 
-    bin/magento config:set oauth/access_token_lifetime/admin 0
+    bin/magento config:set webapi/jwtauth/admin_expiration 525600
+    bin/magento config:set oauth/access_token_lifetime/admin 8760
     bin/magento cache:flush
+
+Set BOTH. They are different knobs for different Magento versions, and the
+units differ:
+
+  webapi/jwtauth/admin_expiration   MINUTES. Magento 2.4.4+, which issues admin
+                                    tokens as JWTs. 525600 = one year.
+                                    DEFAULTS TO 60 — this is the one that
+                                    actually expires your token after an hour.
+  oauth/access_token_lifetime/admin HOURS. Magento 2.4.3 and earlier, which
+                                    issues opaque tokens. 8760 = one year.
+
+On 2.4.4+ the oauth/ path alone does NOTHING to a JWT — the expiry is stamped
+into the token from webapi/jwtauth/admin_expiration when it is issued. Setting
+only the oauth/ one (and especially setting it to 0, which earlier versions of
+these instructions advised) leaves you on the 60-minute default: historical
+import and the periodic order sync stop working, silently, one hour after you
+connect. Live order capture is unaffected — see the note at the end of Step 4.
+
+To confirm it took effect, paste the token into https://jwt.io and check its
+claims: `exp` minus `iat` should be 31536000 (one year), not 3600.
+
+The admin user you use below also needs Sales access. If the token is rejected
+with "The consumer isn't authorized to access %resources", note that Magento
+gives that same message for BOTH an expired token and a role missing
+Magento_Sales — check the expiry first, it is the common case.
 
 Then generate your API token:
 
@@ -43,7 +69,7 @@ store URL.
 
 
 Step 5 — Configure the module in Magento Admin
-Go to your Magento admin panel -> Stores -> Configuration -> Retnly -> MagentoBridge
+Go to your Magento admin panel -> Stores -> Configuration -> Retnly -> General
 
 Fill in:
 

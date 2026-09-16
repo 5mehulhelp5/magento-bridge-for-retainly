@@ -10,7 +10,15 @@ use Retnly\MagentoBridge\Helper\Api;
 use Retnly\MagentoBridge\Model\EventOutbox;
 use Retnly\MagentoBridge\Model\OrderPayloadBuilder;
 
-class OrderRefundedObserver implements ObserverInterface
+/**
+ * Sends magento_order_cancelled.
+ *
+ * Registered on `order_cancel_after`, which is what Magento\Sales\Model\Order::cancel()
+ * dispatches. Note this is NOT `sales_order_cancel_after` — that name appears in older
+ * internal notes but no such event is dispatched by Magento 2, which is part of why this
+ * trigger was listed in the dashboard for months while never firing.
+ */
+class OrderCancelledObserver implements ObserverInterface
 {
     private Api $api;
     private EventOutbox $outbox;
@@ -29,20 +37,16 @@ class OrderRefundedObserver implements ObserverInterface
             return;
         }
 
-        /** @var \Magento\Sales\Model\Order\Creditmemo $creditmemo */
-        $creditmemo = $observer->getEvent()->getCreditmemo();
         /** @var \Magento\Sales\Model\Order $order */
-        $order = $creditmemo->getOrder();
+        $order = $observer->getEvent()->getOrder();
+        if ($order === null) {
+            return;
+        }
 
-        // A PARTIAL credit memo leaves the order in `processing`, not `closed`.
-        // That is exactly why event_type is sent explicitly: a receiver inferring
-        // the event from state alone would read this as "order paid".
         $this->outbox->enqueue(
             'orders/',
-            $this->payloadBuilder->build($order, 'magento_order_refunded', [
-                'refund_amount' => (float) $creditmemo->getGrandTotal(),
-            ]),
-            $this->payloadBuilder->idempotencyKey($order, 'refunded')
+            $this->payloadBuilder->build($order, 'magento_order_cancelled'),
+            $this->payloadBuilder->idempotencyKey($order, 'cancelled')
         );
     }
 }

@@ -17,6 +17,12 @@
         <observer name="retnly_order_refunded"
                   instance="Retnly\MagentoBridge\Observer\OrderRefundedObserver"/>
     </event>
+    <!-- Magento\Sales\Model\Order::cancel() dispatches `order_cancel_after`.
+         It is NOT `sales_order_cancel_after` — that event does not exist. -->
+    <event name="order_cancel_after">
+        <observer name="retnly_order_cancelled"
+                  instance="Retnly\MagentoBridge\Observer\OrderCancelledObserver"/>
+    </event>
     <event name="customer_register_success">
         <observer name="retnly_customer_registered"
                   instance="Retnly\MagentoBridge\Observer\CustomerRegisteredObserver"/>
