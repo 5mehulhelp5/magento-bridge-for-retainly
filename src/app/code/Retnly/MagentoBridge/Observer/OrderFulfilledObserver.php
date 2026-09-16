@@ -34,10 +34,21 @@ class OrderFulfilledObserver implements ObserverInterface
         /** @var \Magento\Sales\Model\Order $order */
         $order = $shipment->getOrder();
 
-        // Only fire when the order has actually reached the complete state.
-        // An order can have partial shipments while still in processing state.
-        if ($order->getState() !== \Magento\Sales\Model\Order::STATE_COMPLETE) {
-            return;
+        // Fire only once the LAST item ships — a partial shipment is not fulfilment.
+        //
+        // Do NOT test $order->getState() === STATE_COMPLETE here, however obvious it
+        // looks. This event fires DURING shipment creation, before Magento persists
+        // the order's transition to `complete`, so the state still reads `processing`
+        // and the check silently swallows every fulfilment. (Verified on a live store:
+        // order reached `complete`, shipment existed, and no event was ever enqueued.)
+        //
+        // getQtyToShip() is the reliable question: Shipment::register() has already
+        // decremented it for the shipment being saved, so it reads 0 on exactly the
+        // shipment that completes the order.
+        foreach ($order->getAllVisibleItems() as $item) {
+            if ($item->getQtyToShip() > 0) {
+                return;
+            }
         }
 
         $this->outbox->enqueue(
