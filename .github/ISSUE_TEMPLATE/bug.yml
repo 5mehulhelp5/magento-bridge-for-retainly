@@ -1,0 +1,54 @@
+name: Bug
+description: Something is broken
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: Actual behaviour, with exact error text from var/log/ if you have it.
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations: {required: true}
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1.\n2."
+    validations: {required: true}
+  - type: input
+    id: magento
+    attributes:
+      label: Magento version
+      placeholder: "2.4.7-p3"
+    validations: {required: true}
+  - type: input
+    id: php
+    attributes:
+      label: PHP version
+      placeholder: "8.3.10"
+    validations: {required: true}
+  - type: input
+    id: module
+    attributes:
+      label: Module version
+      description: "Output of: bin/magento module:status Retnly_MagentoBridge"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [observers, cron, outbox, api, pixel, config, docs, infra]
+    validations: {required: true}
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 - store broken / checkout affected
+        - P1 - major, no workaround
+        - P2 - has a workaround
+        - P3 - minor
+    validations: {required: true}
