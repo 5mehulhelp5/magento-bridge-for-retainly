@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Merchant setup help
+    url: mailto:support@zeroslip.co
+    about: Installing or configuring the module on your store — not a code bug.
+  - name: Report a security vulnerability
+    url: https://github.com/asadshahjahan/magento-bridge-for-retainly/security/advisories/new
+    about: Please do NOT open a public issue for security problems.

@@ -1,0 +1,68 @@
+name: Project automation
+
+# `pull_request_target`, not `pull_request`, because this repo is PUBLIC and
+# most PRs will arrive from forks. A fork's `pull_request` run gets a read-only
+# GITHUB_TOKEN and cannot apply labels. `pull_request_target` runs in the base
+# repo's context with a writable token — safe here precisely because neither job
+# checks out or executes the PR's code.
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  # Path-based labels for PRs. The globs in .github/labeler.yml follow the
+  # Magento module layout, because a module directory already IS the domain
+  # boundary — no separate taxonomy to keep in sync.
+  label-pr:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          sync-labels: false
+
+  # Issues carry their area in the issue-form dropdown rather than in a path,
+  # so map that answer to the matching label. Mirrors the dropdown options in
+  # .github/ISSUE_TEMPLATE/*.yml — keep the two lists together.
+  label-issue:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Apply area label from the form
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ github.event.issue.body }}
+          NUM: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          area=$(printf '%s' "$BODY" | awk '/^### *Area/{getline; while ($0 ~ /^[[:space:]]*$/) getline; print; exit}' | tr -d '\r' | xargs)
+          case " observers cron outbox api pixel config docs infra " in
+            *" $area "*) gh issue edit "$NUM" -R "$REPO" --add-label "area:$area" ;;
+            *) echo "no usable Area answer ('$area'); leaving to triage" ;;
+          esac
+
+  # Mirrors the other ZeroSlip repos' board wiring. Skips itself silently when
+  # PROJECT_TOKEN is not set, so the repo is never gated on a secret it lacks
+  # (GITHUB_TOKEN cannot write to user-level Projects v2).
+  add-to-board:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Add to ZeroSlip Delivery board
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        if: env.PROJECT_TOKEN != ''
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/users/asadshahjahan/projects/2
+          github-token: ${{ secrets.PROJECT_TOKEN }}

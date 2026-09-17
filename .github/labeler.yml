@@ -1,0 +1,19 @@
+# Path -> label, for actions/labeler on pull requests.
+# The Magento module layout IS the domain boundary, so the globs follow the
+# directories rather than inventing a parallel taxonomy.
+"area:observers":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/Observer/**", "src/app/code/Retnly/MagentoBridge/etc/events.xml"] }]
+"area:cron":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/Cron/**", "src/app/code/Retnly/MagentoBridge/etc/crontab.xml"] }]
+"area:outbox":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/Model/**", "src/app/code/Retnly/MagentoBridge/etc/db_schema.xml", "src/app/code/Retnly/MagentoBridge/etc/db_schema_whitelist.json"] }]
+"area:api":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/Helper/**", "src/app/code/Retnly/MagentoBridge/Controller/**"] }]
+"area:pixel":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/view/**", "src/app/code/Retnly/MagentoBridge/ViewModel/**"] }]
+"area:config":
+  - changed-files: [{ any-glob-to-any-file: ["src/app/code/Retnly/MagentoBridge/etc/adminhtml/**", "src/app/code/Retnly/MagentoBridge/etc/acl.xml", "src/app/code/Retnly/MagentoBridge/etc/config.xml", "src/app/code/Retnly/MagentoBridge/etc/module.xml", "src/app/code/Retnly/MagentoBridge/Block/**"] }]
+"area:docs":
+  - changed-files: [{ any-glob-to-any-file: ["**/*.md", "integration.txt", "LICENSE"] }]
+"area:infra":
+  - changed-files: [{ any-glob-to-any-file: [".github/**", "composer.json", ".gitignore"] }]

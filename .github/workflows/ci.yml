@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# PHP 8.1 is the MINIMUM composer.json claims (`"php": ">=8.1"`), and linting on
+# the minimum is what actually protects that claim: 8.2/8.3-only syntax fails
+# here instead of at a merchant's `setup:di:compile`.
+env:
+  PHP_VERSION: "8.1"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: composer
+          coverage: none
+
+      # Syntax check is repo-wide and blocking: it has no false positives, so
+      # there is no backlog to grandfather.
+      - name: php -l (repo-wide)
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            php -l "$f" > /dev/null || { php -l "$f"; fail=1; }
+          done < <(find src -type f \( -name '*.php' -o -name '*.phtml' \))
+          exit $fail
+
+      # Installed in an isolated directory ON PURPOSE. Running composer against
+      # the repo's own composer.json would try to resolve magento/framework from
+      # repo.magento.com, which needs auth keys CI does not have (and should not).
+      - name: Install Magento coding standard
+        run: |
+          mkdir -p /tmp/phpcs
+          cat > /tmp/phpcs/composer.json <<'JSON'
+          {
+            "require-dev": {"magento/magento-coding-standard": "*"},
+            "config": {"allow-plugins": {"dealerdirect/phpcodesniffer-composer-installer": true}}
+          }
+          JSON
+          composer install --working-dir=/tmp/phpcs --no-interaction --no-progress
+
+      # Changed files only, matching how the other ZeroSlip repos gate style:
+      # the Magento2 standard is strict and this module predates it, so a
+      # repo-wide gate would freeze every PR on a backlog nobody wrote today.
+      # New and touched code is held to the standard; the backlog is reported
+      # by the advisory step below.
+      - name: phpcs Magento2 (changed files)
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$BASE" ]; then BASE=$(git rev-parse HEAD~1 2>/dev/null || echo ""); fi
+          if [ -z "$BASE" ]; then echo "no base to diff against; skipping"; exit 0; fi
+          CHANGED=$(git diff --name-only --diff-filter=ACM "$BASE"...HEAD -- '*.php' '*.phtml' | tr '\n' ' ')
+          if [ -z "$CHANGED" ]; then echo "no PHP files changed"; exit 0; fi
+          echo "linting: $CHANGED"
+          /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml $CHANGED
+
+      # Advisory: prints the size of the pre-existing backlog into the run
+      # summary so it stays visible instead of silently accumulating. Never
+      # fails the job — flip `|| true` off once the count reaches zero.
+      - name: phpcs Magento2 (repo-wide, advisory)
+        if: always()
+        run: |
+          echo '## phpcs backlog (advisory)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml \
+            --report=summary src/ >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: composer
+          coverage: none
+
+      # --strict on the root package (the one Packagist publishes). The module's
+      # own composer.json keeps its `version` field, which Magento Marketplace
+      # reads, and which --strict would reject — so it gets a plain validate.
+      - name: composer validate
+        run: |
+          composer validate --strict --no-check-lock
+          composer validate --no-check-lock src/app/code/Retnly/MagentoBridge/composer.json
+
+      - name: XML well-formedness
+        run: |
+          command -v xmllint > /dev/null || sudo apt-get install -y -qq libxml2-utils
+          find src -name '*.xml' -print0 | xargs -0 -r xmllint --noout
+
+      - name: JSON parse
+        run: |
+          find . -name '*.json' -not -path './vendor/*' -print0 \
+            | xargs -0 -r -n1 python3 -m json.tool --sort-keys > /dev/null
+
+      - name: JS syntax
+        run: |
+          find src -name '*.js' -print0 | xargs -0 -r -n1 node --check
+
+      # The checks that only CI can make: nothing here installs Magento (that
+      # needs repo.magento.com credentials), so a broken module identity would
+      # otherwise first surface on a merchant's store.
+      - name: Module identity
+        run: python3 .github/scripts/check_module.py

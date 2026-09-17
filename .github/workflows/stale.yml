@@ -1,0 +1,31 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          # Anything created before this date is permanently out of scope, so
+          # turning automation on cannot retroactively close existing threads.
+          start-date: "2026-09-17T00:00:00Z"
+          days-before-stale: 45
+          days-before-close: 14
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: "P0,P1,blocked"
+          exempt-pr-labels: "P0,P1,blocked"
+          stale-issue-message: >
+            No activity for 45 days. This will close in 14 days unless something
+            happens. Add P0, P1 or blocked to exempt it.
+          stale-pr-message: >
+            No activity for 45 days. This will close in 14 days unless something
+            happens. Add P0, P1 or blocked to exempt it.

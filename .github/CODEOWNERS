@@ -1,0 +1,11 @@
+# Review is auto-requested from the owner on every PR. This does NOT by itself
+# block a merge — the `protected-branches` ruleset requires 1 approval from
+# anyone with write access. Turn `require_code_owner_review` on in that ruleset
+# if the owner's approval specifically should be mandatory.
+*                                   @asadshahjahan
+
+# Changing CI, the ruleset's required checks or the publish metadata changes who
+# can merge what, so it stays owner-only regardless of how the rest is delegated.
+/.github/                           @asadshahjahan
+/composer.json                      @asadshahjahan
+/LICENSE                            @asadshahjahan
