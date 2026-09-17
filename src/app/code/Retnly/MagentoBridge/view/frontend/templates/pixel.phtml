@@ -1,0 +1,25 @@
+<?php
+/**
+ * Storefront pixel bootstrap.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Retnly\MagentoBridge\ViewModel\PixelConfig $pixelConfig
+ */
+$pixelConfig = $block->getData('pixel_config');
+
+if (!$pixelConfig || !$pixelConfig->isEnabled()) {
+    return;
+}
+
+$config = $pixelConfig->getConfig();
+?>
+<script type="text/x-magento-init">
+{
+    "*": {
+        "Retnly_MagentoBridge/js/pixel": <?= /* @noEscape */ json_encode(
+            $config,
+            JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ) ?>
+    }
+}
+</script>

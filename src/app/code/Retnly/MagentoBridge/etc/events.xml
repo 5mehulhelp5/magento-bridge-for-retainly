@@ -23,6 +23,16 @@
         <observer name="retnly_order_cancelled"
                   instance="Retnly\MagentoBridge\Observer\OrderCancelledObserver"/>
     </event>
+    <!-- Keeps Retnly's catalogue copy fresh within a minute instead of a day.
+         Both events carry the product, so one observer serves both. -->
+    <event name="catalog_product_save_after">
+        <observer name="retnly_product_saved"
+                  instance="Retnly\MagentoBridge\Observer\ProductChangedObserver"/>
+    </event>
+    <event name="catalog_product_delete_after">
+        <observer name="retnly_product_deleted"
+                  instance="Retnly\MagentoBridge\Observer\ProductChangedObserver"/>
+    </event>
     <event name="customer_register_success">
         <observer name="retnly_customer_registered"
                   instance="Retnly\MagentoBridge\Observer\CustomerRegisteredObserver"/>

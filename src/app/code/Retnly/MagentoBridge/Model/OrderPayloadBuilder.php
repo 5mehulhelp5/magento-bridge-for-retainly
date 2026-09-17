@@ -42,10 +42,29 @@ class OrderPayloadBuilder
             $items[] = [
                 'sku'        => $item->getSku(),
                 'name'       => $item->getName(),
-                'qty'        => (float) $item->getQtyOrdered(),
-                'price'      => (float) $item->getPrice(),
-                'row_total'  => (float) $item->getRowTotal(),
-                'product_id' => (int) $item->getProductId(),
+                // `qty` is kept for older receivers; `qty_ordered` is what the Retnly
+                // parser looks for first.
+                'qty'              => (float) $item->getQtyOrdered(),
+                'qty_ordered'      => (float) $item->getQtyOrdered(),
+                'price'            => (float) $item->getPrice(),
+                'row_total'        => (float) $item->getRowTotal(),
+                'product_id'       => (int) $item->getProductId(),
+                // Per-line tax and discount. Their absence is why every Magento
+                // receipt recorded zero tax and zero discount: the parser reads
+                // these keys, and nothing was sending them.
+                'tax_amount'       => (float) $item->getTaxAmount(),
+                'tax_percent'      => (float) $item->getTaxPercent(),
+                'discount_amount'  => (float) $item->getDiscountAmount(),
+                'row_total_incl_tax' => $item->getRowTotalInclTax() !== null
+                                            ? (float) $item->getRowTotalInclTax()
+                                            : null,
+                'product_type'     => $item->getProductType(),
+                // Fulfilment state per line — lets a consumer tell a partly shipped
+                // or partly refunded order from a complete one without re-querying.
+                'qty_invoiced'     => (float) $item->getQtyInvoiced(),
+                'qty_shipped'      => (float) $item->getQtyShipped(),
+                'qty_refunded'     => (float) $item->getQtyRefunded(),
+                'qty_canceled'     => (float) $item->getQtyCanceled(),
             ];
         }
 
@@ -56,8 +75,44 @@ class OrderPayloadBuilder
             'event_type'          => $eventType,
             'store_id'            => $this->api->getStoreId(),
             'increment_id'        => $order->getIncrementId(),
+            // Magento's own numeric PK. The receiver files this as the invoice ref;
+            // without it that field was written blank on every receipt.
+            'entity_id'           => $order->getEntityId() !== null
+                                        ? (int) $order->getEntityId()
+                                        : null,
             'grand_total'         => (float) $order->getGrandTotal(),
             'subtotal'            => (float) $order->getSubtotal(),
+            // --- Money the receiver already parses but was never sent -------------
+            'tax_amount'          => (float) $order->getTaxAmount(),
+            'discount_amount'     => (float) $order->getDiscountAmount(),
+            'discount_description' => $order->getDiscountDescription(),
+            'coupon_code'         => $order->getCouponCode(),
+            'shipping_amount'     => (float) $order->getShippingAmount(),
+            'shipping_incl_tax'   => $order->getShippingInclTax() !== null
+                                        ? (float) $order->getShippingInclTax()
+                                        : null,
+            'shipping_tax_amount' => (float) $order->getShippingTaxAmount(),
+            'shipping_method'     => $order->getShippingMethod(),
+            'shipping_description' => $order->getShippingDescription(),
+            'subtotal_incl_tax'   => $order->getSubtotalInclTax() !== null
+                                        ? (float) $order->getSubtotalInclTax()
+                                        : null,
+            // --- Running totals: how much of this order is actually settled -------
+            'total_qty_ordered'   => (float) $order->getTotalQtyOrdered(),
+            'total_invoiced'      => (float) $order->getTotalInvoiced(),
+            'total_paid'          => (float) $order->getTotalPaid(),
+            'total_refunded'      => (float) $order->getTotalRefunded(),
+            'total_due'           => (float) $order->getTotalDue(),
+            // --- Who and where ----------------------------------------------------
+            'customer_group_id'   => $order->getCustomerGroupId() !== null
+                                        ? (int) $order->getCustomerGroupId()
+                                        : null,
+            // Fallback identity: a virtual/downloadable order has no billing address,
+            // so the receiver reads this key when billing_address.telephone is absent.
+            'customer_telephone'  => $billing ? $billing->getTelephone() : null,
+            'customer_note'       => $order->getCustomerNote(),
+            'store_name'          => $order->getStoreName(),
+            'magento_store_id'    => (int) $order->getStoreId(),
             'customer_email'      => $order->getCustomerEmail(),
             'customer_firstname'  => $order->getCustomerFirstname(),
             'customer_lastname'   => $order->getCustomerLastname(),

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+  Injected into `before.body.end` on EVERY storefront page rather than into a
+  cart- or checkout-specific handle. The pixel has to observe navigation and
+  customer-section changes to know a cart was viewed or a checkout began, and a
+  handle-scoped script would only load on the page the shopper already reached.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="retnly.pixel"
+                   template="Retnly_MagentoBridge::pixel.phtml">
+                <arguments>
+                    <argument name="pixel_config" xsi:type="object">
+                        Retnly\MagentoBridge\ViewModel\PixelConfig
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

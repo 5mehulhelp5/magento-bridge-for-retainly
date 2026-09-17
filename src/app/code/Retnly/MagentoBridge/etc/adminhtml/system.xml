@@ -63,6 +63,72 @@
                     <comment>Default: https://test.backend.zeroslip.co/api/v4/magento/</comment>
                 </field>
             </group>
+            <group id="pixel"
+                   translate="label"
+                   type="text"
+                   sortOrder="20"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1">
+                <label>Storefront Pixel</label>
+                <field id="enabled"
+                       translate="label"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+                    <label>Enable Storefront Event Tracking</label>
+                    <comment>Sends cart and checkout events to Retnly. Required for
+                        cart-abandonment and behavioural segments.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="push_enabled"
+                       translate="label"
+                       type="select"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+                    <label>Enable Web Push Registration</label>
+                    <comment>Asks shoppers for notification permission and registers
+                        their device with Retnly. Requires the Firebase fields below.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="firebase_api_key"
+                       translate="label" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Firebase Web API Key</label>
+                    <comment>From the Firebase console, Project settings -> Your apps -> Web app.</comment>
+                    <depends><field id="push_enabled">1</field></depends>
+                </field>
+                <field id="firebase_project_id"
+                       translate="label" type="text" sortOrder="40"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Firebase Project ID</label>
+                    <comment>Must be the project Retnly sends from, or tokens will be rejected.</comment>
+                    <depends><field id="push_enabled">1</field></depends>
+                </field>
+                <field id="firebase_sender_id"
+                       translate="label" type="text" sortOrder="50"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Firebase Messaging Sender ID</label>
+                    <depends><field id="push_enabled">1</field></depends>
+                </field>
+                <field id="firebase_app_id"
+                       translate="label" type="text" sortOrder="60"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Firebase App ID</label>
+                    <depends><field id="push_enabled">1</field></depends>
+                </field>
+                <field id="vapid_key"
+                       translate="label" type="text" sortOrder="70"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Web Push Certificate (VAPID public key)</label>
+                    <comment>Firebase console -> Cloud Messaging -> Web Push certificates.</comment>
+                    <depends><field id="push_enabled">1</field></depends>
+                </field>
+            </group>
         </section>
     </system>
 </config>

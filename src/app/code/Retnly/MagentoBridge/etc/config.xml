@@ -9,6 +9,18 @@
                 <store_id/>
                 <api_base_url>https://test.backend.zeroslip.co/api/v4/magento/</api_base_url>
             </general>
+            <pixel>
+                <enabled>1</enabled>
+                <!-- Push-token registration stays OFF until the Firebase web
+                     credentials below are filled in. Event tracking does not
+                     need them and runs regardless. -->
+                <push_enabled>0</push_enabled>
+                <firebase_api_key/>
+                <firebase_project_id>zeroslip-2ab49</firebase_project_id>
+                <firebase_sender_id/>
+                <firebase_app_id/>
+                <vapid_key/>
+            </pixel>
         </zeroslip>
     </default>
 </config>
