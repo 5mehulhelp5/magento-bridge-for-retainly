@@ -23,8 +23,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -56,32 +54,31 @@ jobs:
           JSON
           composer install --working-dir=/tmp/phpcs --no-interaction --no-progress
 
-      # Changed files only, matching how the other ZeroSlip repos gate style:
-      # the Magento2 standard is strict and this module predates it, so a
-      # repo-wide gate would freeze every PR on a backlog nobody wrote today.
-      # New and touched code is held to the standard; the backlog is reported
-      # by the advisory step below.
-      - name: phpcs Magento2 (changed files)
-        run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
-          if [ -z "$BASE" ]; then BASE=$(git rev-parse HEAD~1 2>/dev/null || echo ""); fi
-          if [ -z "$BASE" ]; then echo "no base to diff against; skipping"; exit 0; fi
-          CHANGED=$(git diff --name-only --diff-filter=ACM "$BASE"...HEAD -- '*.php' '*.phtml' | tr '\n' ' ')
-          if [ -z "$CHANGED" ]; then echo "no PHP files changed"; exit 0; fi
-          echo "linting: $CHANGED"
-          /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml $CHANGED
+      # Repo-wide and BLOCKING, on errors only. The other ZeroSlip repos lint
+      # changed files only because they carry a large pre-existing backlog; this
+      # module does not — the first CI run measured 0 errors across all 16 files
+      # — so there is nothing to grandfather and the whole repo can be gated.
+      #
+      # --warning-severity=0 draws the line at errors. The 78 warnings are real
+      # but advisory (see the next step); promoting them to blocking would fail
+      # any PR that touches one of the 16 files for problems it did not
+      # introduce, which is exactly the backlog trap this repo gets to skip.
+      - name: phpcs Magento2 (repo-wide)
+        run: /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml --warning-severity=0 src/
 
-      # Advisory: prints the size of the pre-existing backlog into the run
-      # summary so it stays visible instead of silently accumulating. Never
-      # fails the job — flip `|| true` off once the count reaches zero.
-      - name: phpcs Magento2 (repo-wide, advisory)
+      # Advisory: which sniffs the outstanding warnings come from, into the run
+      # summary, so the count stays visible instead of silently growing. Drop
+      # --warning-severity=0 from the step above once this reaches zero.
+      - name: phpcs warnings (advisory)
         if: always()
         run: |
-          echo '## phpcs backlog (advisory)' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml \
-            --report=summary src/ 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo '## phpcs warnings (advisory, not blocking)'
+            echo '```'
+            /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml \
+              --report=source src/ 2>&1 || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
   validate:
     name: validate

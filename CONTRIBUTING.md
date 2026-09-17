@@ -29,9 +29,9 @@ composer validate --strict --no-check-lock
 python3 .github/scripts/check_module.py
 ```
 
-The coding standard is enforced on **files your PR changes**, not repo-wide —
-the module predates the standard and the backlog is grandfathered. The full
-count is printed in every CI run's summary; don't add to it.
+The coding standard is enforced **repo-wide, on errors**. There are currently
+zero, so a PR that introduces one fails. The 78 outstanding *warnings* are
+advisory and listed by sniff in every CI run's summary — don't add to them.
 
 ## Things that need extra care
 
