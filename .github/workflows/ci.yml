@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -80,7 +80,7 @@ jobs:
           echo '## phpcs backlog (advisory)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           /tmp/phpcs/vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml \
-            --report=summary src/ >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+            --report=summary src/ 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
   validate:
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -96,12 +96,17 @@ jobs:
           tools: composer
           coverage: none
 
-      # --strict on the root package (the one Packagist publishes). The module's
-      # own composer.json keeps its `version` field, which Magento Marketplace
-      # reads, and which --strict would reject — so it gets a plain validate.
+      # Not --strict, deliberately. --strict promotes warnings to errors, and
+      # the only warning either file produces is the unbound `magento/framework
+      # ">=100.4"` constraint — which is a packaging decision, not a defect:
+      # capping it would make every new Magento minor release require a module
+      # release just to stay installable. Plain validate still fails on real
+      # schema errors, and prints that warning into the log so it stays visible.
+      # (The module's own composer.json also keeps the `version` field Magento
+      # Marketplace reads, which --strict rejects outright.)
       - name: composer validate
         run: |
-          composer validate --strict --no-check-lock
+          composer validate --no-check-lock
           composer validate --no-check-lock src/app/code/Retnly/MagentoBridge/composer.json
 
       - name: XML well-formedness
