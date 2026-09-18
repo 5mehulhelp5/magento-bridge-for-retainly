@@ -104,7 +104,11 @@ class ProductChangedObserver implements ObserverInterface
     }
 
     /**
-     * Shopify-shaped option list: [{"label": "Size", "values": ["S", "M"]}].
+     * Shopify-shaped option list: [{"name": "Size", "values": ["S", "M"]}].
+     *
+     * The key is `name`, not `label`, because that is exactly what the Shopify
+     * sync writes — the backend's card builder reads `options[].name` and would
+     * silently show no dimensions for any other spelling.
      *
      * Magento models a configurable product as a parent plus child products
      * rather than as variants, so the dimensions live on the parent's
@@ -131,7 +135,7 @@ class ProductChangedObserver implements ObserverInterface
                 }
                 if ($values) {
                     $out[] = [
-                        'label'  => (string) ($attr['store_label'] ?? $attr['frontend_label'] ?? ''),
+                        'name'   => (string) ($attr['store_label'] ?? $attr['frontend_label'] ?? ''),
                         'values' => $values,
                     ];
                 }
